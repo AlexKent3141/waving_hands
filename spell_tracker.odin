@@ -54,10 +54,41 @@ spells_insert :: proc(spells: ^Spell_Trie, spell: Spell) {
   node^.spell = spell
 }
 
+spell_next :: proc(current: Spell_Trie_Node, gesture: Gesture) -> (next: Spell_Trie_Node, found: bool) {
+  if current.next[gesture] == nil do return {}, false
+  return current.next[gesture].?, true
+}
+
 @(test)
 basic_test :: proc(t: ^testing.T) {
   spells: Spell_Trie
   spells_init(&spells)
-  spells_insert(&spells, dispel_magic)
+
+  spells_insert(&spells, cause_light_wounds)
+  spells_insert(&spells, summon_giant)
+
+  // `cause_light_wounds` flowing into `summon_giant`.
+  node := spells.root
+  found := true
+  node, found = spell_next(node, Gesture.Wave)
+  assert(found)
+  assert(node.spell == nil)
+  node, found = spell_next(node, Gesture.Wiggled_Fingers)
+  assert(found)
+  assert(node.spell == nil)
+  node, found = spell_next(node, Gesture.Proferred_Palm)
+  assert(found)
+  assert(node.spell == cause_light_wounds)
+
+  node, found = spell_next(node, Gesture.Snap)
+  assert(found)
+  assert(node.spell == nil)
+  node, found = spell_next(node, Gesture.Wiggled_Fingers)
+  assert(found)
+  assert(node.spell == nil)
+  node, found = spell_next(node, Gesture.Wave)
+  assert(found)
+  assert(node.spell == summon_giant)
+
   fmt.println(spells)
 }
