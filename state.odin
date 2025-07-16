@@ -6,6 +6,14 @@ Gesture :: enum {
   Snap,
   Wave,
   Digit_Pointing,
-  Clap,
-  NUM_GESTURES
+  Clap
+}
+
+all_gestures :: []Gesture {
+  Gesture.Wiggled_Fingers,
+  Gesture.Proferred_Palm,
+  Gesture.Snap,
+  Gesture.Wave,
+  Gesture.Digit_Pointing,
+  Gesture.Clap
 }
