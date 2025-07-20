@@ -31,14 +31,7 @@ Spell_State_Machine :: struct {
   states: avl.Tree(Spell_State_Node)
 }
 
-spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine) {
-
-  spells := []Spell {
-    dispel_magic,
-    summon_elemental,
-    magic_mirror
-  }
-
+spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine, spells: []Spell) {
   root := Spell_State_Node{ nil, nil, {}, make([]int, len(spells)) }
 
   avl.init_cmp(&spell_state_machine^.states, proc(a, b: Spell_State_Node) -> slice.Ordering {
@@ -137,8 +130,9 @@ spell_state_machine_destroy :: proc(ssm: ^Spell_State_Machine) {
 
 @(test)
 spell_graph_test :: proc(t: ^testing.T) {
+
   ssm: Spell_State_Machine
-  spell_state_machine_init(&ssm)
+  spell_state_machine_init(&ssm, all_spells[:])
   defer spell_state_machine_destroy(&ssm)
 
   fmt.println(ssm)

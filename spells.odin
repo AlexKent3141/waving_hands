@@ -20,7 +20,6 @@ Spell_Type :: enum {
   Summon_Troll,
   Fireball,
   Shield,
-  Surrender,
   Remove_Enchantment,
   Invisibility,
   Charm_Monster,
@@ -124,3 +123,57 @@ ice_storm               := spell_create(Spell_Type.Ice_Storm, "wssC", false)
 resist_heat             := spell_create(Spell_Type.Resist_Heat, "wwfp", false)
 protection_from_evil    := spell_create(Spell_Type.Protection_From_Evil, "wwp", false)
 counter_spell2          := spell_create(Spell_Type.Counter_Spell2, "wws", false)
+
+all_spells := make([dynamic]Spell)
+
+@(init)
+init_all_spells :: proc() {
+  append(&all_spells, dispel_magic)
+  append(&all_spells, summon_elemental)
+  append(&all_spells, magic_mirror)
+  append(&all_spells, lightning_bolt)
+  append(&all_spells, cure_heavy_wounds)
+  append(&all_spells, cure_light_wounds)
+  append(&all_spells, amnesia)
+  append(&all_spells, confusion)
+  append(&all_spells, disease)
+  append(&all_spells, blindness)
+  append(&all_spells, delayed_effect)
+  append(&all_spells, raise_dead)
+  append(&all_spells, poison)
+  append(&all_spells, paralysis)
+  append(&all_spells, summon_troll)
+  append(&all_spells, fireball)
+  append(&all_spells, shield)
+  append(&all_spells, remove_enchantment)
+  append(&all_spells, invisibility)
+  append(&all_spells, charm_monster)
+  append(&all_spells, charm_person)
+  append(&all_spells, summon_ogre)
+  append(&all_spells, finger_of_death)
+  append(&all_spells, haste)
+  append(&all_spells, missile)
+  append(&all_spells, summon_goblin)
+  append(&all_spells, anti_spell)
+  append(&all_spells, permanency)
+  append(&all_spells, time_stop)
+  append(&all_spells, resist_cold)
+  append(&all_spells, fear)
+  append(&all_spells, fire_storm)
+  append(&all_spells, lightning_bolt_one_time)
+  append(&all_spells, cause_light_wounds)
+  append(&all_spells, summon_giant)
+  append(&all_spells, cause_heavy_wounds)
+  append(&all_spells, counter_spell1)
+  append(&all_spells, ice_storm)
+  append(&all_spells, resist_heat)
+  append(&all_spells, protection_from_evil)
+  append(&all_spells, counter_spell2)
+
+  assert(len(all_spells) == len(Spell_Type))
+}
+
+@(fini)
+cleanup_all_spells :: proc() {
+  delete(all_spells)
+}
