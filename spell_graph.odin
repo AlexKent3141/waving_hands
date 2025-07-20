@@ -6,9 +6,12 @@ import "core:fmt"
 import "core:container/queue"
 import "core:container/avl"
 import "core:slice"
+import "core:strings"
+import "core:os"
 
 // I want to create a state machine covering all of the one-handed combinations.
 Spell_State_Node :: struct {
+  id: int,
   previous_gesture: Maybe(Gesture_Type),
   spell: Maybe(Spell),
   next: [len(Gesture_Type)]Maybe(^Spell_State_Node),
@@ -27,12 +30,13 @@ spell_node_copy :: proc(node: Spell_State_Node) -> Spell_State_Node {
 }
 
 Spell_State_Machine :: struct {
+  next_id: int,
   root: ^Spell_State_Node,
   states: avl.Tree(Spell_State_Node)
 }
 
 spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine, spells: []Spell) {
-  root := Spell_State_Node{ nil, nil, {}, make([]int, len(spells)) }
+  root := Spell_State_Node{ 0, nil, nil, {}, make([]int, len(spells)) }
 
   avl.init_cmp(&spell_state_machine^.states, proc(a, b: Spell_State_Node) -> slice.Ordering {
     assert(len(a.spell_progress) == len(b.spell_progress))
@@ -47,6 +51,7 @@ spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine, spel
   avl.find_or_insert(&spell_state_machine^.states, root)
 
   spell_state_machine^.root = &avl.first(&spell_state_machine^.states)^.value
+  spell_state_machine^.next_id = 1
 
   gesture_stack := queue.Queue(Gesture_Type){}
   queue.init(&gesture_stack)
@@ -118,6 +123,9 @@ spell_state_machine_init_recursive :: proc(
       continue
     }
 
+    node.value.id = spell_state_machine^.next_id
+    spell_state_machine^.next_id += 1
+
     // We've got a new node to explore.
     spell_state_machine_init_recursive(
       spell_state_machine, &node^.value, gesture_stack, spells)
@@ -133,6 +141,28 @@ spell_state_machine_destroy :: proc(ssm: ^Spell_State_Machine) {
   }
 
   avl.destroy(&ssm^.states)
+}
+
+spell_state_machine_serialise :: proc(ssm: ^Spell_State_Machine, builder: ^strings.Builder) {
+  it := avl.iterator(&ssm^.states, avl.Direction.Forward)
+  node, found := avl.iterator_next(&it)
+  for found {
+    state_node := node.value
+    for gesture in Gesture_Type {
+      child := state_node.next[gesture].?
+      assert(child != nil)
+      strings.write_int(builder, state_node.id)
+      strings.write_rune(builder, ' ')
+      strings.write_int(builder, child^.id)
+      strings.write_rune(builder, ' ')
+
+      g, _ := fmt.enum_value_to_string(gesture)
+      strings.write_rune(builder, cast(rune)g[0])
+      strings.write_rune(builder, '\n')
+    }
+
+    node, found = avl.iterator_next(&it)
+  }
 }
 
 @(test)
@@ -245,4 +275,18 @@ spell_graph_test :: proc(t: ^testing.T) {
   assert(node != nil)
   assert(node^.spell != nil)
   assert(node^.spell.?.type == Spell_Type.Anti_Spell) // 9th spell complete.
+}
+
+main :: proc() {
+  ssm: Spell_State_Machine
+  spell_state_machine_init(&ssm, all_spells[:])
+  defer spell_state_machine_destroy(&ssm)
+
+  builder: strings.Builder
+  strings.builder_init(&builder)
+  defer strings.builder_destroy(&builder)
+
+  spell_state_machine_serialise(&ssm, &builder)
+
+  os.write_entire_file("edges.txt", builder.buf[:])
 }
