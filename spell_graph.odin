@@ -9,17 +9,19 @@ import "core:slice"
 
 // I want to create a state machine covering all of the one-handed combinations.
 Spell_State_Node :: struct {
-  previous_gesture: Maybe(Gesture_Type),    // The gesture that was made to reach this node.
-  spell: Maybe(Spell),                 // The spell we completed (if any).
-  spell_progress: []int, // The state this node represents.
-  next: [len(Gesture_Type)]Maybe(^Spell_State_Node)    // Links to the next node for each gesture.
+  previous_gesture: Maybe(Gesture_Type),
+  spell: Maybe(Spell),
+  next: [len(Gesture_Type)]Maybe(^Spell_State_Node),
+
+  // These are dynamically allocated to support different sets of spells.
+  spell_progress: []int
 }
 
-spell_node_copy :: proc(node: Spell_State_Node, num_spells: int) -> Spell_State_Node {
+spell_node_copy :: proc(node: Spell_State_Node) -> Spell_State_Node {
   next := Spell_State_Node{}
   next.previous_gesture = nil
   next.spell = nil
-  next.spell_progress = make([]int, num_spells)
+  next.spell_progress = make([]int, len(node.spell_progress))
   copy(next.spell_progress, node.spell_progress)
   return next
 }
@@ -37,7 +39,7 @@ spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine) {
     magic_mirror
   }
 
-  root := Spell_State_Node{ nil, nil, make([]int, len(spells)), {} }
+  root := Spell_State_Node{ nil, nil, {}, make([]int, len(spells)) }
 
   avl.init_cmp(&spell_state_machine^.states, proc(a, b: Spell_State_Node) -> slice.Ordering {
     assert(len(a.spell_progress) == len(b.spell_progress))
@@ -52,8 +54,6 @@ spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine) {
   avl.find_or_insert(&spell_state_machine^.states, root)
 
   spell_state_machine^.root = &avl.first(&spell_state_machine^.states)^.value
-
-  fmt.println(spell_state_machine^)
 
   gesture_stack := queue.Queue(Gesture_Type){}
   queue.init(&gesture_stack)
@@ -70,7 +70,7 @@ spell_state_machine_init_recursive :: proc(
   gesture_stack: ^queue.Queue(Gesture_Type),
   spells: []Spell) {
 
-  next_base := spell_node_copy(spell_state_node^, len(spells))
+  next_base := spell_node_copy(spell_state_node^)
   defer delete(next_base.spell_progress)
 
   // For completed spells, zero their spell_progress ready for the next state.
@@ -83,7 +83,7 @@ spell_state_machine_init_recursive :: proc(
 
   // Consider all gestures from this point.
   for gesture in all_gestures {
-    next := spell_node_copy(next_base, len(spells))
+    next := spell_node_copy(next_base)
 
     // Update all spell progress.
     for spell_index in 0..<len(spells) {
@@ -106,18 +106,17 @@ spell_state_machine_init_recursive :: proc(
       }
     }
 
-    // Is this a new state?
     node, inserted, _ := avl.find_or_insert(&spell_state_machine^.states, next)
 
-    // Link to the parent.
+    // Link the child to the parent.
     spell_state_node^.next[gesture] = &node.value
 
     if !inserted {
-      // Already explored
       delete(next.spell_progress)
       continue
     }
 
+    // We've got a new node to explore.
     queue.push_back(gesture_stack, gesture)
     spell_state_machine_init_recursive(
       spell_state_machine, &node^.value, gesture_stack, spells)
