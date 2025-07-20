@@ -76,6 +76,9 @@ spell_state_machine_init_recursive :: proc(
 
   // Consider all gestures from this point.
   for gesture in all_gestures {
+    queue.push_back(gesture_stack, gesture)
+    defer queue.pop_back(gesture_stack)
+
     next := spell_node_copy(next_base)
 
     // Update all spell progress.
@@ -89,13 +92,19 @@ spell_state_machine_init_recursive :: proc(
         }
       }
       else {
-        next.spell_progress[spell_index] = 0
-
-        // Does this gesture happen to be the first one of this spell?
-        first_gesture_in_spell := spells[spell_index].gestures[0]
-        if first_gesture_in_spell == gesture {
-          next.spell_progress[spell_index] = 1
+        // We might still have some progress - check how much of the spell prefix is intact.
+        num_gestures := queue.len(gesture_stack^)
+        num_matches := 0
+        spell := spells[spell_index]
+        for n in 1..<len(spell.gestures) {
+          if num_gestures < n do break
+          gestures_so_far := gesture_stack.data[num_gestures - n:num_gestures]
+          spell_gestures_prefix := spell.gestures[:n]
+          assert(len(gestures_so_far) == len(spell_gestures_prefix))
+          if slice.equal(gestures_so_far, spell_gestures_prefix) do num_matches = n
         }
+
+        next.spell_progress[spell_index] = num_matches
       }
     }
 
@@ -110,10 +119,8 @@ spell_state_machine_init_recursive :: proc(
     }
 
     // We've got a new node to explore.
-    queue.push_back(gesture_stack, gesture)
     spell_state_machine_init_recursive(
       spell_state_machine, &node^.value, gesture_stack, spells)
-    queue.pop_back(gesture_stack)
   }
 }
 
@@ -135,15 +142,107 @@ spell_graph_test :: proc(t: ^testing.T) {
   spell_state_machine_init(&ssm, all_spells[:])
   defer spell_state_machine_destroy(&ssm)
 
+  fmt.println("Num states:", avl.len(&ssm.states))
   fmt.println(ssm)
 
   // Let's take a look at the nodes we've got.
-  it := avl.iterator(&ssm.states, avl.Direction.Forward)
-  node, found := avl.iterator_next(&it)
-  fmt.println("Found:", found)
-  for found {
-    fmt.println("Found:", found)
-    fmt.println("Node:", node.value)
-    node, found = avl.iterator_next(&it)
-  }
+//it := avl.iterator(&ssm.states, avl.Direction.Forward)
+//node, found := avl.iterator_next(&it)
+//fmt.println("Found:", found)
+//for found {
+//  fmt.println("Found:", found)
+//  fmt.println("Node:", node.value)
+//  node, found = avl.iterator_next(&it)
+//}
+
+  // Play through White's left hand in the sample game.
+  node := ssm.root
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Proferred_Palm].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Resist_Heat) // 1st spell complete.
+
+  node = node^.next[Gesture_Type.Snap].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Snap].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Counter_Spell2) // 2nd spell complete.
+
+  node = node^.next[Gesture_Type.Digit_Pointing].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Missile) // 3rd spell complete.
+
+  node = node^.next[Gesture_Type.Proferred_Palm].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Shield) // 4th spell complete.
+
+  node = node^.next[Gesture_Type.Proferred_Palm].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Shield) // 5th spell complete.
+
+  node = node^.next[Gesture_Type.Clap].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Snap].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wave].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Clap].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Fire_Storm) // 6th spell complete.
+
+  node = node^.next[Gesture_Type.Snap].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Digit_Pointing].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Missile) // 7th spell complete.
+
+  // Hit by an anti-spell which resets the spell history.
+  node = ssm.root
+
+  node = node^.next[Gesture_Type.Snap].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Proferred_Palm].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Shield) // 8th spell complete.
+
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Anti_Spell) // 9th spell complete.
 }
