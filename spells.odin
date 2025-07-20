@@ -49,7 +49,7 @@ Spell_Type :: enum {
 
 Spell :: struct {
   type: Spell_Type,
-  gestures: []Gesture,
+  gestures: []Gesture_Type,
   two_handed: []bool,
   one_time: bool
 }
@@ -59,20 +59,20 @@ spell_create :: proc(type: Spell_Type, gesture_str: string, one_time: bool) -> S
   spell.type = type
   spell.one_time = one_time
 
-  spell.gestures = make([]Gesture, len(gesture_str))
+  spell.gestures = make([]Gesture_Type, len(gesture_str))
   spell.two_handed = make([]bool, len(gesture_str))
 
   for c, i in gesture_str {
     two_handed := unicode.is_upper(c)
     lower := unicode.to_lower(c)
-    gesture: Gesture
+    gesture: Gesture_Type
     switch lower {
-    case 'f': gesture = Gesture.Wiggled_Fingers
-    case 'p': gesture = Gesture.Proferred_Palm
-    case 's': gesture = Gesture.Snap
-    case 'w': gesture = Gesture.Wave
-    case 'd': gesture = Gesture.Digit_Pointing
-    case 'c': gesture = Gesture.Clap
+    case 'f': gesture = Gesture_Type.Wiggled_Fingers
+    case 'p': gesture = Gesture_Type.Proferred_Palm
+    case 's': gesture = Gesture_Type.Snap
+    case 'w': gesture = Gesture_Type.Wave
+    case 'd': gesture = Gesture_Type.Digit_Pointing
+    case 'c': gesture = Gesture_Type.Clap
     case: panic("Spell contains unsupported gesture")
     }
 

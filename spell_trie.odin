@@ -6,7 +6,7 @@ import "core:fmt"
 import "core:slice"
 
 Spell_Trie_Node :: struct {
-  previous_gesture: Maybe(Gesture), // The gesture that was made to reach this node.
+  previous_gesture: Maybe(Gesture_Type), // The gesture that was made to reach this node.
   spell: Maybe(Spell),              // The spell we completed (if any).
   next: []Maybe(Spell_Trie_Node)    // Links to the next node for each gesture.
 }
@@ -20,7 +20,7 @@ spells_init :: proc(spells: ^Spell_Trie) {
   spells^.root = Spell_Trie_Node{
     nil,
     nil,
-    make([]Maybe(Spell_Trie_Node), len(Gesture)) }
+    make([]Maybe(Spell_Trie_Node), len(Gesture_Type)) }
 }
 
 spells_insert :: proc(spells: ^Spell_Trie, spell: Spell) {
@@ -30,7 +30,7 @@ spells_insert :: proc(spells: ^Spell_Trie, spell: Spell) {
       node^.next[gesture] = Spell_Trie_Node{
         gesture,
         nil,
-        make([]Maybe(Spell_Trie_Node), len(Gesture)) }
+        make([]Maybe(Spell_Trie_Node), len(Gesture_Type)) }
     }
 
     node = &node^.next[gesture].?
@@ -42,7 +42,7 @@ spells_insert :: proc(spells: ^Spell_Trie, spell: Spell) {
   node^.spell = spell
 }
 
-spell_next :: proc(current: Spell_Trie_Node, gesture: Gesture) -> (next: Spell_Trie_Node, found: bool) {
+spell_next :: proc(current: Spell_Trie_Node, gesture: Gesture_Type) -> (next: Spell_Trie_Node, found: bool) {
   if current.next[gesture] == nil do return {}, false
   return current.next[gesture].?, true
 }
@@ -58,23 +58,23 @@ spell_trie_test :: proc(t: ^testing.T) {
   // `cause_light_wounds` flowing into `summon_giant`.
   node := spells.root
   found := true
-  node, found = spell_next(node, Gesture.Wave)
+  node, found = spell_next(node, Gesture_Type.Wave)
   assert(found)
   assert(node.spell == nil)
-  node, found = spell_next(node, Gesture.Wiggled_Fingers)
+  node, found = spell_next(node, Gesture_Type.Wiggled_Fingers)
   assert(found)
   assert(node.spell == nil)
-  node, found = spell_next(node, Gesture.Proferred_Palm)
+  node, found = spell_next(node, Gesture_Type.Proferred_Palm)
   assert(found)
   assert(node.spell.?.type == Spell_Type.Cause_Light_Wounds)
 
-  node, found = spell_next(node, Gesture.Snap)
+  node, found = spell_next(node, Gesture_Type.Snap)
   assert(found)
   assert(node.spell == nil)
-  node, found = spell_next(node, Gesture.Wiggled_Fingers)
+  node, found = spell_next(node, Gesture_Type.Wiggled_Fingers)
   assert(found)
   assert(node.spell == nil)
-  node, found = spell_next(node, Gesture.Wave)
+  node, found = spell_next(node, Gesture_Type.Wave)
   assert(found)
   assert(node.spell.?.type == Spell_Type.Summon_Giant)
 }

@@ -9,10 +9,10 @@ import "core:slice"
 
 // I want to create a state machine covering all of the one-handed combinations.
 Spell_State_Node :: struct {
-  previous_gesture: Maybe(Gesture),    // The gesture that was made to reach this node.
+  previous_gesture: Maybe(Gesture_Type),    // The gesture that was made to reach this node.
   spell: Maybe(Spell),                 // The spell we completed (if any).
   spell_progress: []int, // The state this node represents.
-  next: [len(Gesture)]Maybe(^Spell_State_Node)    // Links to the next node for each gesture.
+  next: [len(Gesture_Type)]Maybe(^Spell_State_Node)    // Links to the next node for each gesture.
 }
 
 spell_node_copy :: proc(node: Spell_State_Node, num_spells: int) -> Spell_State_Node {
@@ -55,7 +55,7 @@ spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine) {
 
   fmt.println(spell_state_machine^)
 
-  gesture_stack := queue.Queue(Gesture){}
+  gesture_stack := queue.Queue(Gesture_Type){}
   queue.init(&gesture_stack)
   defer queue.destroy(&gesture_stack)
 
@@ -67,7 +67,7 @@ spell_state_machine_init :: proc(spell_state_machine: ^Spell_State_Machine) {
 spell_state_machine_init_recursive :: proc(
   spell_state_machine: ^Spell_State_Machine,
   spell_state_node: ^Spell_State_Node,
-  gesture_stack: ^queue.Queue(Gesture),
+  gesture_stack: ^queue.Queue(Gesture_Type),
   spells: []Spell) {
 
   next_base := spell_node_copy(spell_state_node^, len(spells))

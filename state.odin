@@ -1,6 +1,6 @@
 package waving_hands
 
-Gesture :: enum {
+Gesture_Type :: enum {
   Wiggled_Fingers,
   Proferred_Palm,
   Snap,
@@ -9,11 +9,11 @@ Gesture :: enum {
   Clap
 }
 
-all_gestures :: []Gesture {
-  Gesture.Wiggled_Fingers,
-  Gesture.Proferred_Palm,
-  Gesture.Snap,
-  Gesture.Wave,
-  Gesture.Digit_Pointing,
-  Gesture.Clap
+all_gestures :: []Gesture_Type {
+  Gesture_Type.Wiggled_Fingers,
+  Gesture_Type.Proferred_Palm,
+  Gesture_Type.Snap,
+  Gesture_Type.Wave,
+  Gesture_Type.Digit_Pointing,
+  Gesture_Type.Clap
 }
