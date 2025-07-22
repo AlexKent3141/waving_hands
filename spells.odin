@@ -1,6 +1,7 @@
 package waving_hands
 
 import "core:unicode"
+import "core:fmt"
 
 Spell_Type :: enum {
   Dispel_Magic,
@@ -47,6 +48,7 @@ Spell_Type :: enum {
 }
 
 Spell :: struct {
+  index: int,
   type: Spell_Type,
   gestures: []Gesture_Type,
   two_handed: []bool,
@@ -125,6 +127,7 @@ protection_from_evil    := spell_create(Spell_Type.Protection_From_Evil, "wwp", 
 counter_spell2          := spell_create(Spell_Type.Counter_Spell2, "wws", false)
 
 all_spells := make([dynamic]Spell)
+reduced_spells := make([dynamic]Spell)
 
 @(init)
 init_all_spells :: proc() {
@@ -170,7 +173,17 @@ init_all_spells :: proc() {
   append(&all_spells, protection_from_evil)
   append(&all_spells, counter_spell2)
 
-  assert(len(all_spells) == len(Spell_Type))
+  // Set indices.
+  for &spell, i in all_spells {
+    spell.index = i
+  }
+
+  for spell in all_spells[:3] do append(&reduced_spells, spell)
+
+  // Set indices.
+  for &spell, i in reduced_spells {
+    spell.index = i
+  }
 }
 
 @(fini)

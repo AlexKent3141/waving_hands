@@ -74,8 +74,8 @@ spell_state_machine_init_recursive :: proc(
   // For completed spells, zero their spell_progress ready for the next state.
   for spell in spells {
     num_gestures := len(spell.gestures)
-    if next_base.spell_progress[spell.type] == num_gestures {
-      next_base.spell_progress[spell.type] = 0
+    if next_base.spell_progress[spell.index] == num_gestures {
+      next_base.spell_progress[spell.index] = 0
     }
   }
 
@@ -148,17 +148,44 @@ spell_state_machine_serialise :: proc(ssm: ^Spell_State_Machine, builder: ^strin
   node, found := avl.iterator_next(&it)
   for found {
     state_node := node.value
+
+    child_gestures := map[^Spell_State_Node]([dynamic]u8){}
+    defer delete(child_gestures)
+
     for gesture in Gesture_Type {
       child := state_node.next[gesture].?
       assert(child != nil)
-      strings.write_int(builder, state_node.id)
+
+      if !(child in child_gestures) {
+        child_gestures[child] = make([dynamic]u8)
+      }
+
+      append(&child_gestures[child], gesture_to_char[gesture])
+    }
+
+    for k, v in child_gestures {
+      if state_node.spell != nil {
+        s, _ := fmt.enum_value_to_string(state_node.spell.?.type)
+        strings.write_string(builder, s)
+      }
+      else {
+        strings.write_int(builder, state_node.id)
+      }
+
       strings.write_rune(builder, ' ')
-      strings.write_int(builder, child^.id)
+      if k^.spell != nil {
+        s, _ := fmt.enum_value_to_string(k^.spell.?.type)
+        strings.write_string(builder, s)
+      }
+      else {
+        strings.write_int(builder, k^.id)
+      }
       strings.write_rune(builder, ' ')
 
-      g, _ := fmt.enum_value_to_string(gesture)
-      strings.write_rune(builder, cast(rune)g[0])
+      strings.write_string(builder, cast(string)v[:])
       strings.write_rune(builder, '\n')
+
+      delete(v)
     }
 
     node, found = avl.iterator_next(&it)
@@ -174,16 +201,6 @@ spell_graph_test :: proc(t: ^testing.T) {
 
   fmt.println("Num states:", avl.len(&ssm.states))
   fmt.println(ssm)
-
-  // Let's take a look at the nodes we've got.
-//it := avl.iterator(&ssm.states, avl.Direction.Forward)
-//node, found := avl.iterator_next(&it)
-//fmt.println("Found:", found)
-//for found {
-//  fmt.println("Found:", found)
-//  fmt.println("Node:", node.value)
-//  node, found = avl.iterator_next(&it)
-//}
 
   // Play through White's left hand in the sample game.
   node := ssm.root
@@ -279,7 +296,7 @@ spell_graph_test :: proc(t: ^testing.T) {
 
 main :: proc() {
   ssm: Spell_State_Machine
-  spell_state_machine_init(&ssm, all_spells[:])
+  spell_state_machine_init(&ssm, reduced_spells[:])
   defer spell_state_machine_destroy(&ssm)
 
   builder: strings.Builder
