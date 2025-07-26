@@ -294,6 +294,38 @@ spell_graph_test :: proc(t: ^testing.T) {
   assert(node^.spell.?.type == Spell_Type.Anti_Spell) // 9th spell complete.
 }
 
+@(test)
+spell_graph_repeated_paralysis_test :: proc(t: ^testing.T) {
+
+  ssm: Spell_State_Machine
+  spell_state_machine_init(&ssm, all_spells[:])
+  defer spell_state_machine_destroy(&ssm)
+
+  fmt.println("Num states:", avl.len(&ssm.states))
+  fmt.println(ssm)
+
+  // Repeatedly cast paralysis.
+  // Once we've done it the first time, we can keep casting `F` to keep it going.
+  node := ssm.root
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell == nil)
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Paralysis) // 1st paralysis
+
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Paralysis) // 2nd paralysis
+}
+
 main :: proc() {
   ssm: Spell_State_Machine
   spell_state_machine_init(&ssm, reduced_spells[:])
