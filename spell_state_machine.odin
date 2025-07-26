@@ -180,7 +180,7 @@ spell_state_machine_serialise :: proc(ssm: ^Spell_State_Machine, builder: ^strin
 }
 
 @(test)
-spell_graph_test :: proc(t: ^testing.T) {
+spell_state_machine_test :: proc(t: ^testing.T) {
 
   ssm: Spell_State_Machine
   spell_state_machine_init(&ssm, all_spells[:])
@@ -282,7 +282,7 @@ spell_graph_test :: proc(t: ^testing.T) {
 }
 
 @(test)
-spell_graph_repeated_paralysis_test :: proc(t: ^testing.T) {
+spell_state_machine_repeated_paralysis_test :: proc(t: ^testing.T) {
 
   ssm: Spell_State_Machine
   spell_state_machine_init(&ssm, all_spells[:])
