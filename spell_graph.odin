@@ -71,14 +71,6 @@ spell_state_machine_init_recursive :: proc(
   next_base := spell_node_copy(spell_state_node^)
   defer delete(next_base.spell_progress)
 
-  // For completed spells, zero their spell_progress ready for the next state.
-  for spell in spells {
-    num_gestures := len(spell.gestures)
-    if next_base.spell_progress[spell.index] == num_gestures {
-      next_base.spell_progress[spell.index] = 0
-    }
-  }
-
   // Consider all gestures from this point.
   for gesture in all_gestures {
     queue.push_back(gesture_stack, gesture)
@@ -88,28 +80,23 @@ spell_state_machine_init_recursive :: proc(
 
     // Update all spell progress.
     for spell_index in 0..<len(spells) {
-      progress := next.spell_progress[spell_index]
-      next_gesture_in_spell := spells[spell_index].gestures[progress]
-      if next_gesture_in_spell == gesture {
-        next.spell_progress[spell_index] += 1
-        if next.spell_progress[spell_index] == len(spells[spell_index].gestures) {
-          next.spell = spells[spell_index]
-        }
+      // We might still have some progress - check how much of the spell prefix is intact.
+      num_gestures := queue.len(gesture_stack^)
+      num_matches := 0
+      spell := spells[spell_index]
+      for n in 1..=len(spell.gestures) {
+        if num_gestures < n do break
+        gestures_so_far := gesture_stack.data[num_gestures - n:num_gestures]
+        spell_gestures_prefix := spell.gestures[:n]
+        assert(len(gestures_so_far) == len(spell_gestures_prefix))
+        if slice.equal(gestures_so_far, spell_gestures_prefix) do num_matches = n
       }
-      else {
-        // We might still have some progress - check how much of the spell prefix is intact.
-        num_gestures := queue.len(gesture_stack^)
-        num_matches := 0
-        spell := spells[spell_index]
-        for n in 1..<len(spell.gestures) {
-          if num_gestures < n do break
-          gestures_so_far := gesture_stack.data[num_gestures - n:num_gestures]
-          spell_gestures_prefix := spell.gestures[:n]
-          assert(len(gestures_so_far) == len(spell_gestures_prefix))
-          if slice.equal(gestures_so_far, spell_gestures_prefix) do num_matches = n
-        }
 
-        next.spell_progress[spell_index] = num_matches
+      next.spell_progress[spell_index] = num_matches
+
+      // Is the spell complete?
+      if next.spell_progress[spell_index] == len(spell.gestures) {
+        next.spell = spell
       }
     }
 
@@ -324,6 +311,11 @@ spell_graph_repeated_paralysis_test :: proc(t: ^testing.T) {
   assert(node != nil)
   assert(node^.spell != nil)
   assert(node^.spell.?.type == Spell_Type.Paralysis) // 2nd paralysis
+
+  node = node^.next[Gesture_Type.Wiggled_Fingers].?
+  assert(node != nil)
+  assert(node^.spell != nil)
+  assert(node^.spell.?.type == Spell_Type.Paralysis) // 3rd paralysis
 }
 
 main :: proc() {
