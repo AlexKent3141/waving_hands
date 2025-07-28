@@ -189,4 +189,5 @@ init_all_spells :: proc() {
 @(fini)
 cleanup_all_spells :: proc() {
   delete(all_spells)
+  delete(reduced_spells)
 }
